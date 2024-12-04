@@ -1,6 +1,4 @@
 <?php
-// download.php
-
 if (isset($_GET['filename'])) {
     $filename = $_GET['filename'];
     $file_path = "files/" . $filename;
