@@ -1,7 +1,6 @@
 <?php
 // Incluye la conexión a la base de datos
 include('db.php');
-
 // Función para formatear el tamaño del archivo
 function formatSize($size) {
     if ($size >= 1073741824) {
@@ -88,6 +87,7 @@ $stmt = $conn->query("SELECT * FROM upload ORDER BY id DESC");
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Gestor de Archivos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
