@@ -9,7 +9,7 @@
 date_default_timezone_set("America/Lima");
 ?>
 <?php
-$conn=new PDO('mysql:host=localhost; dbname=myweb', 'root', '') or die(mysqli_error($conn));
+$conn=new PDO('mysql:host=13.58.47.110; dbname=myweb', 'root', '') or die(mysqli_error($conn));
 if(isset($_POST['submit'])!=""){
   $name=$_FILES['photo']['name'];
   $size=$_FILES['photo']['size'];  // Obtener el tamaño del archivo
