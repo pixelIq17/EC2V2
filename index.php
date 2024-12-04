@@ -1,7 +1,5 @@
 <?php
-// Incluye la conexión a la base de datos
 include('db.php');
-// Función para formatear el tamaño del archivo
 function formatSize($size) {
     if ($size >= 1073741824) {
         return number_format($size / 1073741824, 2) . ' GB';
@@ -13,8 +11,6 @@ function formatSize($size) {
         return $size . ' bytes';
     }
 }
-
-// Subir archivo
 if (isset($_POST['submit'])) {
     if (isset($_FILES['photo']) && $_FILES['photo']['error'] === 0) {
         $name = $_FILES['photo']['name'];
@@ -23,10 +19,8 @@ if (isset($_POST['submit'])) {
         $temp = $_FILES['photo']['tmp_name'];
         $date = date('Y-m-d H:i:s');
         $sizeFormatted = formatSize($size);
-
         $target_dir = "files/";
         $target_file = $target_dir . basename($name);
-
         if (move_uploaded_file($temp, $target_file)) {
             try {
                 $stmt = $conn->prepare("INSERT INTO upload (name, size, date) VALUES (:name, :size, :date)");
@@ -50,24 +44,18 @@ if (isset($_POST['submit'])) {
         die("Error al subir el archivo.");
     }
 }
-
-// Eliminar archivo
 if (isset($_GET['del'])) {
     $del = $_GET['del'];
-
     $stmt = $conn->prepare("SELECT * FROM upload WHERE id = :id");
     $stmt->bindParam(':id', $del);
     $stmt->execute();
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
     if ($row) {
         $fileName = $row['name'];
         $filePath = "files/" . $fileName;
-
         if (file_exists($filePath)) {
             unlink($filePath);
         }
-
         $stmt = $conn->prepare("DELETE FROM upload WHERE id = :id");
         $stmt->bindParam(':id', $del);
         $stmt->execute();
@@ -78,16 +66,12 @@ if (isset($_GET['del'])) {
         die("El archivo no existe.");
     }
 }
-
-// Listar archivos
 $stmt = $conn->query("SELECT * FROM upload ORDER BY id DESC");
 ?>
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Gestor de Archivos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -124,14 +108,11 @@ $stmt = $conn->query("SELECT * FROM upload ORDER BY id DESC");
     </style>
 </head>
 <body>
-
 <div class="container">
     <!-- Cabecera -->
     <div class="alert alert-info mb-4">
         <strong>Gestor de Archivos</strong>
     </div>
-
-    <!-- Formulario de subida de archivos -->
     <div class="card">
         <div class="card-header">
             <h3 class="card-title">Subir un nuevo archivo</h3>
@@ -145,8 +126,6 @@ $stmt = $conn->query("SELECT * FROM upload ORDER BY id DESC");
             </form>
         </div>
     </div>
-
-    <!-- Tabla de archivos -->
     <div class="card mt-4">
         <div class="card-header">
             <h3 class="card-title">Archivos Subidos</h3>
@@ -184,9 +163,6 @@ $stmt = $conn->query("SELECT * FROM upload ORDER BY id DESC");
         </div>
     </div>
 </div>
-
-<!-- Scripts de Bootstrap -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
-
 </body>
 </html>
