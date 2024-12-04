@@ -1,30 +1,8 @@
-<html>
-<title>Pixel17|Manager</title>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="description" content="">
-<link href="globe.png" rel="shortcut icon">
 <?php
-date_default_timezone_set("America/Lima");
-?>
-<?php
-$conn=new PDO('mysql:host=13.58.47.110; dbname=myweb', 'root', '') or die(mysqli_error($conn));
-if(isset($_POST['submit'])!=""){
-  $name=$_FILES['photo']['name'];
-  $size=$_FILES['photo']['size'];  // Obtener el tamaño del archivo
-  $type=$_FILES['photo']['type'];
-  $temp=$_FILES['photo']['tmp_name'];
-  $date = date('Y-m-d H:i:s');
-  $sizeFormatted = formatSize($size);
-  move_uploaded_file($temp,"files/".$name);
-  $query=$conn->query("INSERT INTO upload (name, size, date) VALUES ('$name', '$sizeFormatted', '$date')");
-  if($query){
-    header("location:index.php");
-  } else {
-    die(mysqli_error($conn));
-  }
-}
+// Incluye la conexión a la base de datos
+include('db.php');
+
+// Función para formatear el tamaño del archivo
 function formatSize($size) {
     if ($size >= 1073741824) {
         return number_format($size / 1073741824, 2) . ' GB';
@@ -36,110 +14,179 @@ function formatSize($size) {
         return $size . ' bytes';
     }
 }
+
+// Subir archivo
+if (isset($_POST['submit'])) {
+    if (isset($_FILES['photo']) && $_FILES['photo']['error'] === 0) {
+        $name = $_FILES['photo']['name'];
+        $size = $_FILES['photo']['size'];
+        $type = $_FILES['photo']['type'];
+        $temp = $_FILES['photo']['tmp_name'];
+        $date = date('Y-m-d H:i:s');
+        $sizeFormatted = formatSize($size);
+
+        $target_dir = "files/";
+        $target_file = $target_dir . basename($name);
+
+        if (move_uploaded_file($temp, $target_file)) {
+            try {
+                $stmt = $conn->prepare("INSERT INTO upload (name, size, date) VALUES (:name, :size, :date)");
+                $stmt->bindParam(':name', $name);
+                $stmt->bindParam(':size', $sizeFormatted);
+                $stmt->bindParam(':date', $date);
+
+                if ($stmt->execute()) {
+                    header("Location: index.php");
+                    exit();
+                } else {
+                    die("Error al insertar el archivo en la base de datos.");
+                }
+            } catch (PDOException $e) {
+                die("Error al insertar archivo: " . $e->getMessage());
+            }
+        } else {
+            die("Error al mover el archivo.");
+        }
+    } else {
+        die("Error al subir el archivo.");
+    }
+}
+
+// Eliminar archivo
+if (isset($_GET['del'])) {
+    $del = $_GET['del'];
+
+    $stmt = $conn->prepare("SELECT * FROM upload WHERE id = :id");
+    $stmt->bindParam(':id', $del);
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($row) {
+        $fileName = $row['name'];
+        $filePath = "files/" . $fileName;
+
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+
+        $stmt = $conn->prepare("DELETE FROM upload WHERE id = :id");
+        $stmt->bindParam(':id', $del);
+        $stmt->execute();
+
+        header("Location: index.php");
+        exit();
+    } else {
+        die("El archivo no existe.");
+    }
+}
+
+// Listar archivos
+$stmt = $conn->query("SELECT * FROM upload ORDER BY id DESC");
 ?>
-<html>
-<body>
-<link href="css/bootstrap.css" rel="stylesheet" type="text/css" media="screen">
-<link rel="stylesheet" type="text/css" href="css/DT_bootstrap.css">
-<link rel="stylesheet" type="text/css" href="css/font-awesome.css">
-<link rel="stylesheet" href="css/bootstrap.min.css">
-<link rel="stylesheet" href="font-awesome/css/font-awesome.min.css"/>
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gestor de Archivos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        .card-header {
+            background-color: #007bff;
+            color: #fff;
+        }
+        .card-body {
+            background-color: #fff;
+        }
+        .btn {
+            font-size: 1.1rem;
+        }
+        .table th, .table td {
+            vertical-align: middle;
+        }
+        .btn-info, .btn-danger {
+            width: 100%;
+        }
+        .alert {
+            background-color: #17a2b8;
+            color: #fff;
+            text-align: center;
+        }
+    </style>
 </head>
-<script src="js/jquery.js" type="text/javascript"></script>
-<script src="js/bootstrap.js" type="text/javascript"></script>
-<script type="text/javascript" charset="utf-8" language="javascript" src="js/jquery.dataTables.js"></script>
-<script type="text/javascript" charset="utf-8" language="javascript" src="js/DT_bootstrap.js"></script>
-<?php include('dbcon.php'); ?>
-<style>
-.table tr th{
-    border:#eee 1px solid;
-    font-size:12px;
-    text-transform:uppercase;
-}
-table tr td{
-    border:#eee 1px solid;
-    color:#000;
-    font-size:12px;
-    text-transform:uppercase;
-}
-#wb_Form1{
-   background-color: #00BFFF;
-   border: 0px #000 solid;
-}
-#photo{
-   border: 1px #A9A9A9 solid;
-   background-color: #00BFFF;
-   color: #fff;
-   font-family:Arial;
-   font-size: 20px;
-}
-</style>
-<div class="alert alert-info">
-    GESTOR DE ARCHIVOS
-</div>
-<table cellpadding="0" cellspacing="0" border="0" class="table table-bordered">
-    <tr>
-        <td>
-            <form enctype="multipart/form-data" action="" id="wb_Form1" name="form" method="post">
-                <input type="file" name="photo" id="photo" required="required">
-        </td>
-        <td><input type="submit" class="btn btn-danger" value="CARGAR ARCHIVO" name="submit">
-        </form> 
-    </tr>
-</table>
-<div class="col-md-18">
-    <div class="container-fluid" style="margin-top:0px;">
-        <div class="row">
-            <div class="panel panel-default">
-                <div class="panel-body">
-                    <div class="table-responsive">
-                        <form method="post" action="delete.php">
-                            <table cellpadding="0" cellspacing="0" border="0" class="table table-condensed" id="example">
-                                <thead>
-                                    <tr>
-                                        <th>ID</th>
-                                        <th>ARCHIVO</th>
-                                        <th>FECHA</th>
-                                        <th>PESO</th> <!-- Nueva columna para el tamaño -->
-                                        <th>DESCARGAR</th>
-                                        <th>ELIMINAR</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php 
-                                    $query=mysqli_query($conn,"select * from upload ORDER BY id DESC")or die(mysqli_error($conn));
-                                    while($row=mysqli_fetch_array($query)){
-                                        $id = $row['id'];
-                                        $name = $row['name'];
-                                        $date = $row['date'];
-                                        $size = $row['size'];  // Obtener el tamaño del archivo desde la base de datos
-                                    ?>
-                                    <tr>
-                                        <td><?php echo $row['id'] ?></td>
-                                        <td><?php echo $row['name'] ?></td>
-                                        <td><?php echo $row['date'] ?></td>
-                                        <td><?php echo $size ?></td> <!-- Mostrar el tamaño del archivo -->
-                                        <td>
-                                            <a href="download.php?filename=<?php echo $name;?>" title="click to download">
-                                                <span class="glyphicon glyphicon-paperclip" style="font-size:20px; color:blue"></span>
-                                            </a>
-                                        </td>
-                                        <td>
-                                            <a href="delete.php?del=<?php echo $row['id']?>">
-                                                <span class="glyphicon glyphicon-trash" style="font-size:20px; color:red"></span>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    <?php } ?>
-                                </tbody>
-                            </table>
-                        </form>
-                    </div>
+<body>
+
+<div class="container">
+    <!-- Cabecera -->
+    <div class="alert alert-info mb-4">
+        <strong>Gestor de Archivos</strong>
+    </div>
+
+    <!-- Formulario de subida de archivos -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">Subir un nuevo archivo</h3>
+        </div>
+        <div class="card-body">
+            <form enctype="multipart/form-data" method="post">
+                <div class="input-group mb-3">
+                    <input type="file" name="photo" required class="form-control">
+                    <button type="submit" name="submit" class="btn btn-success">Subir Archivo <i class="fas fa-upload"></i></button>
                 </div>
-            </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de archivos -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h3 class="card-title">Archivos Subidos</h3>
+        </div>
+        <div class="card-body">
+            <table class="table table-striped table-bordered">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Archivo</th>
+                        <th>Fecha</th>
+                        <th>Tamaño</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) { ?>
+                    <tr>
+                        <td><?php echo $row['id']; ?></td>
+                        <td><?php echo $row['name']; ?></td>
+                        <td><?php echo $row['date']; ?></td>
+                        <td><?php echo $row['size']; ?></td>
+                        <td>
+                            <a href="download.php?filename=<?php echo $row['name']; ?>" class="btn btn-info">
+                                <i class="fas fa-download"></i> Descargar
+                            </a>
+                            <a href="index.php?del=<?php echo $row['id']; ?>" class="btn btn-danger mt-2">
+                                <i class="fas fa-trash-alt"></i> Eliminar
+                            </a>
+                        </td>
+                    </tr>
+                    <?php } ?>
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
+
+<!-- Scripts de Bootstrap -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
